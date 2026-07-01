@@ -12,10 +12,6 @@ use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: RecipeRepository::class)]
 #[ApiResource(
-    operations: [
-        new Get(),
-        new GetCollection(),
-    ],
     normalizationContext: ['groups' => ['recipe:read']],
     paginationClientItemsPerPage: true,
     paginationItemsPerPage: 10,
