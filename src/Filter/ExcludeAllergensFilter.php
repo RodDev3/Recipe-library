@@ -29,6 +29,7 @@ final class ExcludeAllergensFilter implements FilterInterface
         $subQueryAlias = $queryNameGenerator->generateJoinAlias('recipe');   // ex: recipe_a1
         $allergenAlias = $queryNameGenerator->generateJoinAlias('allergen'); // ex: allergen_a2
         $parameterName = $queryNameGenerator->generateParameterName('excludeAllergens');
+        dd('test');
 
         // sous-requête : "cette recette a-t-elle un des allergènes exclus ?"
         $subQuery = $queryBuilder->getEntityManager()->createQueryBuilder()
