@@ -25,7 +25,11 @@ jobs:
             -   name: Install Composer dependencies
                 run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
 
-            # 3. Envoyer les fichiers (y compris vendor/) sur le VPS, puis vider le cache Symfony sur place
+            # 3. Copier les assets des bundles (CSS/JS de Swagger UI d'API Platform) dans public/bundles/
+            -   name: Install bundle assets
+                run: php bin/console assets:install public --no-interaction
+
+            # 4. Envoyer les fichiers (y compris vendor/) sur le VPS, puis vider le cache Symfony sur place
             -   name: Run rsync deployment
                 uses: easingthemes/ssh-deploy@v5.1.2
                 with:
