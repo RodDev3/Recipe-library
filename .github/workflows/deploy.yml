@@ -2,41 +2,40 @@ name: Deploy to CloudPanel
 
 on:
     push:
-        branches: [ main ] # Changez "main" par "master" si c'est votre branche principale
+        branches: [ main ]
 
 jobs:
     deploy:
         runs-on: ubuntu-latest
+        env:
+            APP_ENV: prod
 
         steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+            -   name: Checkout code
+                uses: actions/checkout@v4
 
-        # 1. Installer PHP sur le runner GitHub pour lancer Composer
-        - name: Setup PHP
-          uses: shivammathur/setup-php@v2
-          with:
-              php-version: '8.5'
-              tools: composer
+            # 1. Installer PHP sur le runner GitHub pour lancer Composer
+            -   name: Setup PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: '8.5'
+                    tools: composer
 
-        # 2. Installer les dépendances en mode production
-        - name: Install Composer dependencies
-          run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+            # 2. Installer les dépendances en mode production (sans les scripts auto : le cache est vidé sur le serveur)
+            -   name: Install Composer dependencies
+                run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
 
-        # 3. (Optionnel) Vider le cache pour qu'il soit propre
-        - name: Clear Symfony cache
-          run: php bin/console cache:clear --env=prod
-          env:
-              APP_ENV: prod
-              APP_SECRET: dummy_secret_for_build # Juste pour éviter une erreur si le secret est requis au build
-
-        # 4. Ensuite, ton étape rsync existante qui envoie tout (y compris vendor/) sur le VPS
-        - name: Run rsync deployment
-          uses: easingthemes/ssh-deploy@v5
-          env:
-              SSH_PRIVATE_KEY: ${{ secrets.CLOUDPANEL_SSH_KEY }}
-              ARGS: "-avz --delete"
-              SOURCE: "."
-              REMOTE_HOST: ${{ secrets.CLOUDPANEL_HOST }}
-              REMOTE_USER: ${{ secrets.CLOUDPANEL_USER }}
-              TARGET: "/home/${{ secrets.CLOUDPANEL_USER }}/htdocs/cuisine.rodolphedavid.fr/"
+            # 3. Envoyer les fichiers (y compris vendor/) sur le VPS, puis vider le cache Symfony sur place
+            -   name: Run rsync deployment
+                uses: easingthemes/ssh-deploy@v5
+                with:
+                    SSH_PRIVATE_KEY: ${{ secrets.CLOUDPANEL_SSH_KEY }}
+                    REMOTE_HOST: ${{ secrets.CLOUDPANEL_HOST }}
+                    REMOTE_USER: ${{ secrets.CLOUDPANEL_USER }}
+                    SOURCE: "./"
+                    TARGET: "/home/${{ secrets.CLOUDPANEL_USER }}/htdocs/cuisine.rodolphedavid.fr/"
+                    ARGS: "-avz --delete"
+                    EXCLUDE: "/.git/, /.github/, /.idea/, /.env, /.env.local, /.env.*.local, /var/, /node_modules/"
+                    SCRIPT_AFTER: |
+                        cd /home/${{ secrets.CLOUDPANEL_USER }}/htdocs/cuisine.rodolphedavid.fr/
+                        APP_ENV=prod php bin/console cache:clear --env=prod
