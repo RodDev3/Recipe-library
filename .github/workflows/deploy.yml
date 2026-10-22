@@ -27,7 +27,7 @@ jobs:
 
             # 3. Envoyer les fichiers (y compris vendor/) sur le VPS, puis vider le cache Symfony sur place
             -   name: Run rsync deployment
-                uses: easingthemes/ssh-deploy@v5
+                uses: easingthemes/ssh-deploy@v5.1.2
                 with:
                     SSH_PRIVATE_KEY: ${{ secrets.CLOUDPANEL_SSH_KEY }}
                     REMOTE_HOST: ${{ secrets.CLOUDPANEL_HOST }}
