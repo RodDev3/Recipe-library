@@ -12,20 +12,31 @@ jobs:
         - name: Checkout code
           uses: actions/checkout@v4
 
-        - name: Setup SSH Key
-          uses: webfactory/ssh-agent@v0.9.0
+        # 1. Installer PHP sur le runner GitHub pour lancer Composer
+        - name: Setup PHP
+          uses: shivammathur/setup-php@v2
           with:
-              ssh-private-key: ${{ secrets.CLOUDPANEL_SSH_KEY }}
+              php-version: '8.5'
+              tools: composer
 
-        - name: Add remote server to known_hosts
-          run: |
-              mkdir -p ~/.ssh
-              ssh-keyscan -H ${{ secrets.CLOUDPANEL_HOST }} >> ~/.ssh/known_hosts
+        # 2. Installer les dépendances en mode production
+        - name: Install Composer dependencies
+          run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
-        - name: Sync files to server via rsync
-          run: |
-              rsync -avz --delete \
-                --exclude='.git*' \
-                --exclude='.github' \
-                --exclude='.env' \
-                ./ ${{ secrets.CLOUDPANEL_USER }}@${{ secrets.CLOUDPANEL_HOST }}:${{ secrets.CLOUDPANEL_TARGET_DIR }}/
+        # 3. (Optionnel) Vider le cache pour qu'il soit propre
+        - name: Clear Symfony cache
+          run: php bin/console cache:clear --env=prod
+          env:
+              APP_ENV: prod
+              APP_SECRET: dummy_secret_for_build # Juste pour éviter une erreur si le secret est requis au build
+
+        # 4. Ensuite, ton étape rsync existante qui envoie tout (y compris vendor/) sur le VPS
+        - name: Run rsync deployment
+          uses: easingthemes/ssh-deploy@v5
+          env:
+              SSH_PRIVATE_KEY: ${{ secrets.CLOUDPANEL_SSH_KEY }}
+              ARGS: "-avz --delete"
+              SOURCE: "."
+              REMOTE_HOST: ${{ secrets.CLOUDPANEL_HOST }}
+              REMOTE_USER: ${{ secrets.CLOUDPANEL_USER }}
+              TARGET: "/home/${{ secrets.CLOUDPANEL_USER }}/htdocs/cuisine.rodolphedavid.fr/"
